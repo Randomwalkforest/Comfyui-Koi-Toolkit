@@ -19,6 +19,7 @@ class ImageStitchForICImproved:
                 "divisible_by": ("INT", {"default": 8, "min": 1, "max": 32, "step": 1}),  # 尺寸需要被整除的数值
                 "border_ratio": ("FLOAT", {"default": 0.15, "min": 0.0, "max": 1.0, "step": 0.01}),  # 边框扩充比例
                 "image1_scale_factor": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 5.0, "step": 0.01}),  # image1手动缩放系数
+                "background_color": (["#FFFFFF", "#000000"], {"default": "#FFFFFF"}),  # 背景填充颜色
             },
         }
 
@@ -35,6 +36,31 @@ class ImageStitchForICImproved:
         if torch.all(mask == 0):
             return True
         return False
+
+    def hex_to_rgb(self, hex_color):
+        """将HEX颜色值转换为RGB元组 (0-255)"""
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    
+    def hex_to_rgb_normalized(self, hex_color):
+        """将HEX颜色值转换为归一化的RGB元组 (0-1)"""
+        r, g, b = self.hex_to_rgb(hex_color)
+        return (r / 255.0, g / 255.0, b / 255.0)
+    
+    def get_padding_value(self, hex_color):
+        """获取用于padding的颜色值 (0-1范围内的单一值，用于灰度或白色/黑色)"""
+        r, g, b = self.hex_to_rgb_normalized(hex_color)
+        # 对于白色返回1.0，对于黑色返回0.0，其他颜色使用亮度值
+        return (r + g + b) / 3.0
+    
+    def create_canvas(self, height, width, background_color='#FFFFFF'):
+        """根据背景颜色创建画布"""
+        r, g, b = self.hex_to_rgb_normalized(background_color)
+        canvas = torch.zeros((1, height, width, 3), dtype=torch.float32)
+        canvas[:, :, :, 0] = r  # Red channel
+        canvas[:, :, :, 1] = g  # Green channel  
+        canvas[:, :, :, 2] = b  # Blue channel
+        return canvas
 
     def pil2mask(self, image):
         image_np = np.array(image.convert("L")).astype(np.float32) / 255.0
@@ -84,17 +110,19 @@ class ImageStitchForICImproved:
         # 将三个通道合并成一个图像张量
         return torch.cat((r, g, b), dim=-1)
 
-    def resize_image_and_mask(self, image, mask, w, h):
+    def resize_image_and_mask(self, image, mask, w, h, background_color='#FFFFFF'):
         ret_images = []
         ret_masks = []
         _mask = Image.new('L', size=(w, h), color='black')
-        _image = Image.new('RGB', size=(w, h), color='white')
+        # 使用动态背景颜色创建图像
+        bg_color = self.hex_to_rgb(background_color)
+        _image = Image.new('RGB', size=(w, h), color=bg_color)
 
         # 调整图像大小
         if image is not None and len(image) > 0:
             for i in image:
                 _image = tensor2pil(i).convert('RGB')
-                _image = fit_resize_image(_image, w, h, 'fit', Image.LANCZOS, '#FFFFFF')
+                _image = fit_resize_image(_image, w, h, 'fit', Image.LANCZOS, background_color)
                 ret_images.append(pil2tensor(_image))
 
         # 调整遮罩大小
@@ -109,7 +137,7 @@ class ImageStitchForICImproved:
         mask_tensor = torch.cat(ret_masks, dim=0) if len(ret_masks) > 0 else None
         return (img_tensor, mask_tensor)
 
-    def main(self, image_1, mask_1, image_2, mask_2, direction, divisible_by, border_ratio, image1_scale_factor):
+    def main(self, image_1, mask_1, image_2, mask_2, direction, divisible_by, border_ratio, image1_scale_factor, background_color):
         # 如果mask_2为空，则为 image_2 创建一个全白遮罩
         if self.isMaskEmpty(mask_2):
             mask_2 = torch.full((1, image_2.shape[1], image_2.shape[2]), 1, dtype=torch.float32, device="cpu")
@@ -157,7 +185,7 @@ class ImageStitchForICImproved:
                     log(f"Using mask-based scale ratio: {initial_scale_ratio:.3f}")
 
                 if new_width > 0 and new_height > 0:
-                    image_1, mask_1 = self.resize_image_and_mask(image_1, mask_1, new_width, new_height)
+                    image_1, mask_1 = self.resize_image_and_mask(image_1, mask_1, new_width, new_height, background_color)
                     # 更新 image_1 尺寸
                     _, img1_h, img1_w, _ = image_1.shape
 
@@ -168,7 +196,7 @@ class ImageStitchForICImproved:
             manual_new_height = round(img1_h * image1_scale_factor)
             
             if manual_new_width > 0 and manual_new_height > 0:
-                image_1, mask_1 = self.resize_image_and_mask(image_1, mask_1, manual_new_width, manual_new_height)
+                image_1, mask_1 = self.resize_image_and_mask(image_1, mask_1, manual_new_width, manual_new_height, background_color)
                 # 更新 image_1 尺寸
                 _, img1_h, img1_w, _ = image_1.shape
                 log(f"Applied manual scale factor {image1_scale_factor:.2f}: resized image1 to {manual_new_width}x{manual_new_height}")
@@ -229,9 +257,18 @@ class ImageStitchForICImproved:
         pad_left = total_pad_w // 2
         pad_right = total_pad_w - pad_left
         
-        # 应用padding到image1
+        # 应用padding到image1，使用动态背景颜色
+        # 为RGB三个通道分别创建padding后的图像
+        r, g, b = self.hex_to_rgb_normalized(background_color)
+        
+        # 分别为每个通道应用padding
         img_padding = (0, 0, pad_left, pad_right, pad_top, pad_bottom)
-        image_1 = torch.nn.functional.pad(image_1, img_padding, "constant", 1.0)
+        image_1_r = torch.nn.functional.pad(image_1[:, :, :, 0:1], img_padding, "constant", r)
+        image_1_g = torch.nn.functional.pad(image_1[:, :, :, 1:2], img_padding, "constant", g)
+        image_1_b = torch.nn.functional.pad(image_1[:, :, :, 2:3], img_padding, "constant", b)
+        
+        # 重新组合RGB通道
+        image_1 = torch.cat([image_1_r, image_1_g, image_1_b], dim=-1)
         
         # 同步padding到mask1
         if not self.isMaskEmpty(mask_1):
@@ -248,8 +285,8 @@ class ImageStitchForICImproved:
             final_h = max(img1_h, img2_h)
             final_w = img1_w + img2_w
             
-            # 创建白色画布
-            canvas = torch.ones((1, final_h, final_w, 3), dtype=torch.float32)
+            # 创建指定颜色的画布
+            canvas = self.create_canvas(final_h, final_w, background_color)
             
             # 放置image1（左侧，垂直居中）
             y1_offset = (final_h - img1_h) // 2
@@ -272,8 +309,8 @@ class ImageStitchForICImproved:
             final_h = img1_h + img2_h
             final_w = max(img1_w, img2_w)
             
-            # 创建白色画布
-            canvas = torch.ones((1, final_h, final_w, 3), dtype=torch.float32)
+            # 创建指定颜色的画布
+            canvas = self.create_canvas(final_h, final_w, background_color)
             
             # 放置image1（顶部，水平居中）
             x1_offset = (final_w - img1_w) // 2

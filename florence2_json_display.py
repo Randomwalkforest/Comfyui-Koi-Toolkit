@@ -38,8 +38,11 @@ class Florence2JsonShow:
     CATEGORY = "Florence2/Display"
 
     def format_coordinates(self, data, precision=2):
-        """格式化坐标数据，统一精度"""
+        """格式化坐标数据，统一精度，优化大数据量处理"""
+        # 大数据量优化：如果是大列表，考虑分批处理
         if isinstance(data, list):
+            if len(data) > 1000:  # 大数据量阈值
+                print(f"Florence2JsonDisplay: 处理大数据量 ({len(data)} 项)，可能需要较长时间...")
             return [self.format_coordinates(item, precision) for item in data]
         elif isinstance(data, dict):
             formatted = {}
@@ -62,10 +65,44 @@ class Florence2JsonShow:
         else:
             return data
 
+    def validate_input_data(self, data):
+        """验证输入数据结构是否符合预期格式"""
+        if data is None:
+            return False, "数据为空"
+        
+        # 检查是否为有效的数据类型
+        if not isinstance(data, (dict, list)):
+            return False, f"不支持的数据类型: {type(data)}"
+        
+        # 如果是字典，检查是否包含预期的字段
+        if isinstance(data, dict):
+            if not any(key in data for key in ['bboxes', 'labels', 'quad_boxes', 'polygons']):
+                return False, "字典中未找到预期的坐标相关字段"
+        
+        # 如果是列表，检查元素类型
+        elif isinstance(data, list):
+            if len(data) == 0:
+                return False, "数据列表为空"
+            # 检查第一个元素的类型
+            first_item = data[0]
+            if not isinstance(first_item, (dict, list, int, float)):
+                return False, f"列表元素类型不支持: {type(first_item)}"
+        
+        return True, "数据格式有效"
+
     def display_json(self, florence2_data, format_style="pretty", show_coordinates=True, coordinate_precision=2):
         try:
+            # 验证输入数据
+            is_valid, validation_msg = self.validate_input_data(florence2_data)
+            if not is_valid:
+                print(f"Florence2JsonDisplay 数据验证失败: {validation_msg}")
+                display_data = {
+                    "error": "输入数据验证失败",
+                    "message": validation_msg,
+                    "data": florence2_data
+                }
             # 处理输入数据
-            if florence2_data is None:
+            elif florence2_data is None:
                 display_data = {"message": "没有数据输入", "data": None}
             else:
                 # 如果需要格式化坐标
@@ -84,16 +121,40 @@ class Florence2JsonShow:
                     }
                 }
 
-            # 根据格式风格生成JSON字符串
-            if format_style == "pretty":
-                json_str = json.dumps(display_data, ensure_ascii=False, indent=2, separators=(',', ': '))
-            else:  # compact
+            # 根据格式风格生成JSON字符串，优化大数据性能
+            try:
+                if format_style == "pretty":
+                    json_str = json.dumps(display_data, ensure_ascii=False, indent=2, separators=(',', ': '))
+                else:  # compact
+                    json_str = json.dumps(display_data, ensure_ascii=False, separators=(',', ':'))
+                
+                # 检查输出大小，如果过大给出警告
+                if len(json_str) > 100000:  # 100KB 阈值
+                    print(f"Florence2JsonDisplay: 警告 - 输出数据较大 ({len(json_str)/1024:.1f}KB)，可能影响UI显示性能")
+                    
+            except MemoryError:
+                print("Florence2JsonDisplay: 内存不足，尝试使用紧凑格式")
                 json_str = json.dumps(display_data, ensure_ascii=False, separators=(',', ':'))
 
             # 使用JSON字符串，保持换行格式
             formatted_output = json_str
 
-            print(f"Florence2JsonDisplay: 成功格式化数据，包含 {len(processed_data) if isinstance(processed_data, list) else 1} 个检测结果")
+            # 改进日志记录
+            data_count = 0
+            if isinstance(processed_data, list):
+                data_count = len(processed_data)
+            elif isinstance(processed_data, dict):
+                # 尝试计算字典中的检测数量
+                if 'bboxes' in processed_data:
+                    data_count = len(processed_data['bboxes'])
+                elif any(key.startswith('detection_') for key in processed_data.keys()):
+                    data_count = sum(1 for key in processed_data.keys() if key.startswith('detection_'))
+                else:
+                    data_count = 1
+            else:
+                data_count = 1
+            
+            print(f"Florence2JsonDisplay: 成功格式化数据，包含 {data_count} 个检测结果，格式: {format_style}，坐标精度: {coordinate_precision if show_coordinates else '禁用'}")
 
         except Exception as e:
             error_msg = f"Florence2JsonDisplay 错误: {str(e)}"
@@ -147,8 +208,17 @@ class Florence2CoordinateExtractor:
 
     def extract_coordinates(self, florence2_data, extract_type="all", filter_label="", min_confidence=0.0):
         try:
-            if not florence2_data:
-                return ({}, "没有输入数据")
+            # 更严格的输入验证
+            if florence2_data is None:
+                return ({}, "输入数据为 None")
+            
+            if isinstance(florence2_data, (list, dict)) and len(florence2_data) == 0:
+                return ({}, "输入数据为空")
+            
+            # 验证 extract_type 参数
+            valid_types = ["all", "bboxes_only", "labels_only", "coordinates_with_labels"]
+            if extract_type not in valid_types:
+                return ({}, f"无效的提取类型: {extract_type}，支持的类型: {valid_types}")
 
             extracted = {}
             summary_info = []

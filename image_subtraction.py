@@ -18,7 +18,7 @@ class ImageSubtraction:
     RETURN_TYPES = ("MASK", "IMAGE")
     RETURN_NAMES = ("diff_mask", "diff_image")
     FUNCTION = "subtract_images"
-    CATEGORY = "Koi-Toolkit/Image"
+    CATEGORY = "🐟Koi-Toolkit"
     
     def subtract_images(self, image_a, image_b, mode="absolute_diff", threshold=0.1, normalize=True):
         """
@@ -102,7 +102,7 @@ class ImageSubtractionAdvanced:
     RETURN_TYPES = ("MASK", "IMAGE", "IMAGE")
     RETURN_NAMES = ("diff_mask", "diff_heatmap", "overlay")
     FUNCTION = "advanced_subtract"
-    CATEGORY = "Koi-Toolkit/Image"
+    CATEGORY = "🐟Koi-Toolkit"
     
     def advanced_subtract(self, image_a, image_b, method="L1", output_format="both", 
                          blur_sigma=0.0, gamma_correction=1.0):

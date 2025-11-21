@@ -7,7 +7,7 @@ except Exception as e:
     OpenAI = None
 
 
-class DashScopeChat:
+class AliyunChat:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -122,9 +122,9 @@ class DashScopeChat:
 
 
 NODE_CLASS_MAPPINGS = {
-    "DashScopeChat": DashScopeChat,
+    "AliyunChat": AliyunChat,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "DashScopeChat": "DashScope Chat",
+    "AliyunChat": "Aliyun Chat",
 }

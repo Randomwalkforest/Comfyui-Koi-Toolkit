@@ -193,6 +193,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageSubtraction": "Image Subtraction",
-    "ImageSubtractionAdvanced": "Image Subtraction Advanced",
+    "ImageSubtraction": "🐟 Image Subtraction",
+    "ImageSubtractionAdvanced": "🐟 Image Subtraction Advanced",
 }

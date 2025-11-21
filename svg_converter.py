@@ -163,7 +163,7 @@ class ImageToSVG_Potracer:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "vectorize"
-    CATEGORY = "💎TOSVG/Convert"
+    CATEGORY = "🐟Koi-Toolkit"
 
     def vectorize(self, image, threshold, turnpolicy, turdsize, corner_threshold, opttolerance,
                   input_foreground="Black on White", optimize_curve=True,
@@ -303,8 +303,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SVGToImage": "🐟 SVG String To Image",
-    "SaveSVG": "🐟 Save SVG String",
-    "PreviewSVG": "🐟 Preview SVG String",
+    "SVGToImage": "🐟 SVG To Image",
+    "SaveSVG": "🐟 Save SVG",
+    "PreviewSVG": "🐟 Preview SVG",
     "ImageToSVG_Potracer": "🐟 Image To SVG (Potracer)",
 }

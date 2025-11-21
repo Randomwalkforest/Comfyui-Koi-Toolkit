@@ -5,7 +5,8 @@ from . import image_subtraction as _image_subtraction
 from . import florence2_json_display as _florence2_json_display
 from . import aliyun_chat as _aliyun_chat
 from . import text_split_lines as _text_split_lines
-from . import image_binarize as _image_binarize
+from . import svg_converter as _svg_converter
+from . import image_desaturate_edge_binarize as _image_desaturate_edge_binarize
 
 # 合并所有子模块的节点映射，防止后导入覆盖先导入
 NODE_CLASS_MAPPINGS = {}
@@ -16,7 +17,8 @@ NODE_CLASS_MAPPINGS.update(getattr(_image_subtraction, "NODE_CLASS_MAPPINGS", {}
 NODE_CLASS_MAPPINGS.update(getattr(_florence2_json_display, "NODE_CLASS_MAPPINGS", {}))
 NODE_CLASS_MAPPINGS.update(getattr(_aliyun_chat, "NODE_CLASS_MAPPINGS", {}))
 NODE_CLASS_MAPPINGS.update(getattr(_text_split_lines, "NODE_CLASS_MAPPINGS", {}))
-NODE_CLASS_MAPPINGS.update(getattr(_image_binarize, "NODE_CLASS_MAPPINGS", {}))
+NODE_CLASS_MAPPINGS.update(getattr(_svg_converter, "NODE_CLASS_MAPPINGS", {}))
+NODE_CLASS_MAPPINGS.update(getattr(_image_desaturate_edge_binarize, "NODE_CLASS_MAPPINGS", {}))
 
 NODE_DISPLAY_NAME_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_inpaint_stitch_simple, "NODE_DISPLAY_NAME_MAPPINGS", {}))
@@ -26,6 +28,7 @@ NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_image_subtraction, "NODE_DISPLAY_NAME
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_florence2_json_display, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_aliyun_chat, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_text_split_lines, "NODE_DISPLAY_NAME_MAPPINGS", {}))
-NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_image_binarize, "NODE_DISPLAY_NAME_MAPPINGS", {}))
+NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_svg_converter, "NODE_DISPLAY_NAME_MAPPINGS", {}))
+NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_image_desaturate_edge_binarize, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

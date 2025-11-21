@@ -1,0 +1,28 @@
+# Python cache and compiled artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environments / local config
+.env
+*.env
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs / temp
+*.log
+tmp/
+.temp/

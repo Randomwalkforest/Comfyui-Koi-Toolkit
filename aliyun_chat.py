@@ -1,5 +1,10 @@
 import os
 import json
+import base64
+import io
+import numpy as np
+from PIL import Image
+import torch
 
 try:
     from openai import OpenAI
@@ -121,10 +126,82 @@ class AliyunChat:
         return {"ui": {"text": [ui_text]}, "result": (content, reasoning if show_reasoning else "")}
 
 
+class AliyunVLChat(AliyunChat):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "model": ("STRING", {"default": "qwen-vl-plus"}),
+            },
+            "optional": {
+                "system_prompt": ("STRING", {"default": "", "multiline": True}),
+                "user_message": ("STRING", {"default": "Describe this image.", "multiline": True}),
+                "api_key": ("STRING", {"default": ""}),
+                "base_url": ("STRING", {"default": "https://dashscope.aliyuncs.com/compatible-mode/v1"}),
+                "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1}),
+                "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 8192}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("content", "reasoning")
+    FUNCTION = "run"
+    CATEGORY = "🐟Koi-Toolkit"
+
+    def _image_to_base64(self, image):
+        if len(image.shape) == 4:
+            image = image[0]
+        i = 255. * image.cpu().numpy()
+        img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+        buffered = io.BytesIO()
+        img.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        return f"data:image/jpeg;base64,{img_str}"
+
+    def run(
+        self,
+        image,
+        model,
+        user_message,
+        system_prompt="You are a helpful assistant.",
+        api_key="",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        temperature=0.7,
+        max_tokens=1024,
+    ):
+        client = self._get_client(api_key, base_url)
+        image_url = self._image_to_base64(image)
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+            
+        content_list = [
+            {"type": "image_url", "image_url": {"url": image_url}},
+            {"type": "text", "text": user_message}
+        ]
+        messages.append({"role": "user", "content": content_list})
+
+        kwargs = {
+            "model": model,
+            "messages": messages,
+            "temperature": float(temperature),
+            "max_tokens": int(max_tokens),
+        }
+
+        result = client.chat.completions.create(**kwargs)
+        content, reasoning = self._aggregate_non_stream(result)
+
+        return {"ui": {"text": [content]}, "result": (content, reasoning)}
+
+
 NODE_CLASS_MAPPINGS = {
     "AliyunChat": AliyunChat,
+    "AliyunVLChat": AliyunVLChat,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AliyunChat": "🐟 Aliyun Chat",
+    "AliyunVLChat": "🐟 Aliyun VL Chat",
 }

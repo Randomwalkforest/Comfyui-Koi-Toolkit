@@ -7,6 +7,7 @@ from . import aliyun_chat as _aliyun_chat
 from . import text_split_lines as _text_split_lines
 from . import svg_converter as _svg_converter
 from . import image_desaturate_edge_binarize as _image_desaturate_edge_binarize
+from . import search_icon_freepik as _search_icon_freepik
 
 # 合并所有子模块的节点映射，防止后导入覆盖先导入
 NODE_CLASS_MAPPINGS = {}
@@ -19,6 +20,7 @@ NODE_CLASS_MAPPINGS.update(getattr(_aliyun_chat, "NODE_CLASS_MAPPINGS", {}))
 NODE_CLASS_MAPPINGS.update(getattr(_text_split_lines, "NODE_CLASS_MAPPINGS", {}))
 NODE_CLASS_MAPPINGS.update(getattr(_svg_converter, "NODE_CLASS_MAPPINGS", {}))
 NODE_CLASS_MAPPINGS.update(getattr(_image_desaturate_edge_binarize, "NODE_CLASS_MAPPINGS", {}))
+NODE_CLASS_MAPPINGS.update(getattr(_search_icon_freepik, "NODE_CLASS_MAPPINGS", {}))
 
 NODE_DISPLAY_NAME_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_inpaint_stitch_simple, "NODE_DISPLAY_NAME_MAPPINGS", {}))
@@ -30,5 +32,6 @@ NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_aliyun_chat, "NODE_DISPLAY_NAME_MAPPI
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_text_split_lines, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_svg_converter, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_image_desaturate_edge_binarize, "NODE_DISPLAY_NAME_MAPPINGS", {}))
+NODE_DISPLAY_NAME_MAPPINGS.update(getattr(_search_icon_freepik, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
